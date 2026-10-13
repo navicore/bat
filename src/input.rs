@@ -113,6 +113,31 @@ pub(crate) struct OpenedInput<'a> {
 }
 
 impl OpenedInput<'_> {
+    /// Re-read the whole input, align all GFM pipe tables, and replace the
+    /// reader so downstream consumers see aligned lines. This is a no-op for
+    /// inputs that are not plain UTF-8. Line count is always preserved.
+    pub(crate) fn realign_markdown_tables(&mut self) -> Result<()> {
+        if !matches!(
+            self.reader.content_type,
+            None | Some(ContentType::UTF_8) | Some(ContentType::UTF_8_BOM)
+        ) {
+            return Ok(());
+        }
+        let mut bytes: Vec<u8> = Vec::new();
+        let mut line: Vec<u8> = Vec::new();
+        while self.reader.read_line(&mut line)? {
+            bytes.append(&mut line);
+        }
+        let aligned = match String::from_utf8(bytes) {
+            Ok(text) => crate::markdown_tables::align_markdown_tables(&text).into_bytes(),
+            Err(e) => e.into_bytes(),
+        };
+        let unbuffered = self.reader.unbuffered;
+        self.reader = InputReader::try_new(io::Cursor::new(aligned))?;
+        self.reader.unbuffered = unbuffered;
+        Ok(())
+    }
+
     /// Get the path of the file:
     /// If this was set by the metadata, that will take priority.
     /// If it wasn't, it will use the real file path (if available).

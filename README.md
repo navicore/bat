@@ -1,3 +1,5 @@
+> **Fork notice:** this is a personal fork that renders markdown tables — not upstream bat, and not PR-ready. See [FORK.md](FORK.md).
+
 <p align="center">
   <img src="doc/logo-header.svg" alt="bat - a cat clone with wings"><br>
   <a href="https://github.com/sharkdp/bat/actions?query=workflow%3ACICD"><img src="https://github.com/sharkdp/bat/workflows/CICD/badge.svg" alt="Build Status"></a>

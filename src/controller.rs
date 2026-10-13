@@ -14,7 +14,7 @@ use crate::output::{OutputHandle, OutputType};
 use crate::paging::PagingMode;
 use crate::printer::{InteractivePrinter, Printer, SimplePrinter};
 use std::collections::VecDeque;
-use std::io::{self, BufRead, Write};
+use std::io::{self, BufRead, IsTerminal, Write};
 use std::mem;
 
 use clircle::{Clircle, Identifier};
@@ -100,6 +100,11 @@ impl Controller<'_> {
             clircle::Identifier::stdout()
         };
 
+        // Fork extension: align GFM markdown tables when writing straight to a
+        // terminal (or to a pager we spawn ourselves). Piped output stays
+        // byte-faithful to the input.
+        let align_markdown_tables = output_handle.is_none() && io::stdout().is_terminal();
+
         let mut writer = match (output_handle, &mut output_type_opt) {
             (Some(OutputHandle::FmtWrite(w)), _) => OutputHandle::FmtWrite(w),
             (Some(OutputHandle::IoWrite(w)), _) => OutputHandle::IoWrite(w),
@@ -113,10 +118,24 @@ impl Controller<'_> {
             let identifier = stdout_identifier.as_ref();
             let is_first = index == 0;
             let result = if input.is_stdin() {
-                self.print_input(input, &mut writer, io::stdin().lock(), identifier, is_first)
+                self.print_input(
+                    input,
+                    &mut writer,
+                    io::stdin().lock(),
+                    identifier,
+                    is_first,
+                    align_markdown_tables,
+                )
             } else {
                 // Use dummy stdin since stdin is actually not used (#1902)
-                self.print_input(input, &mut writer, io::empty(), identifier, is_first)
+                self.print_input(
+                    input,
+                    &mut writer,
+                    io::empty(),
+                    identifier,
+                    is_first,
+                    align_markdown_tables,
+                )
             };
             if let Err(error) = result {
                 match writer {
@@ -145,6 +164,7 @@ impl Controller<'_> {
         stdin: R,
         stdout_identifier: Option<&Identifier>,
         is_first: bool,
+        align_markdown_tables: bool,
     ) -> Result<()> {
         let mut opened_input = {
             #[cfg(feature = "lessopen")]
@@ -159,6 +179,13 @@ impl Controller<'_> {
             input.open(stdin, stdout_identifier)?
         };
         opened_input.reader.unbuffered = self.config.unbuffered;
+
+        if align_markdown_tables
+            && !self.config.loop_through
+            && self.input_is_markdown(&mut opened_input)
+        {
+            opened_input.realign_markdown_tables()?;
+        }
         #[cfg(feature = "git")]
         let line_changes = if self.config.visible_lines.diff_mode()
             || (!self.config.loop_through && self.config.style_components.changes())
@@ -209,6 +236,20 @@ impl Controller<'_> {
             #[cfg(feature = "git")]
             &line_changes,
         )
+    }
+
+    /// True when the resolved syntax for this input is the Markdown syntax
+    /// (mirrors the detection the interactive printer performs).
+    fn input_is_markdown(&self, input: &mut OpenedInput) -> bool {
+        self.assets
+            .get_syntax(
+                self.config.language,
+                self.config.fallback_syntax,
+                input,
+                &self.config.syntax_mapping,
+            )
+            .map(|syntax| syntax.syntax.name == "Markdown")
+            .unwrap_or(false)
     }
 
     fn print_file(

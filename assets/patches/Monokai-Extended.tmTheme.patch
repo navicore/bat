@@ -25,7 +25,7 @@ index 9c2aa3e..180cbbf 100644
        <key>settings</key>
        <dict>
          <key>background</key>
-@@ -1038,11 +1038,22 @@
+@@ -1038,11 +1038,44 @@
          <string>#f8f8f0</string>
        </dict>
      </dict>
@@ -38,6 +38,28 @@ index 9c2aa3e..180cbbf 100644
 +      <dict>
 +        <key>foreground</key>
 +        <string>#dd2020</string>
++      </dict>
++    </dict>
++    <dict>
++      <key>name</key>
++      <string>Markdown: table punctuation</string>
++      <key>scope</key>
++      <string>text.html.markdown punctuation.separator.table-cell.markdown, text.html.markdown punctuation.section.table-header.markdown</string>
++      <key>settings</key>
++      <dict>
++        <key>foreground</key>
++        <string>#75715e</string>
++      </dict>
++    </dict>
++    <dict>
++      <key>name</key>
++      <string>Markdown: table header</string>
++      <key>scope</key>
++      <string>text.html.markdown meta.table.header.markdown-gfm, text.html.markdown meta.table.header.markdown</string>
++      <key>settings</key>
++      <dict>
++        <key>foreground</key>
++        <string>#66d9ef</string>
 +      </dict>
 +    </dict>
      <dict>
