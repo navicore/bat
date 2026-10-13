@@ -30,8 +30,12 @@ Everything else about bat is unchanged.
 ```sh
 cd ~/git/navicore/bat
 git switch navicore-tables
-cargo install --path . --force --root ~/.local   # installs to ~/.local/bin/bat
+cargo install --path . --locked --force --root ~/.local   # installs to ~/.local/bin/bat
 ```
+
+`--locked` is required: `cargo install` re-resolves dependencies (ignoring
+`Cargo.lock`) by default, and upstream's locked `bisync 0.3.0` (via `gix`)
+has been yanked from crates.io — fresh resolution fails without `--locked`.
 
 Careful: this machine also has Debian's `/usr/bin/batcat` symlinked as
 `~/.local/bin/bat` (v0.24.0, without this feature). After installing, check
